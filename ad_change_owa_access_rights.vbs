@@ -1,4 +1,4 @@
-'--------------------------------------------------------------------------------------
+ï»¿'--------------------------------------------------------------------------------------
 ' Changing AD user properties to allow or deny OWA and OMA access depending on user group
 ' Author: Valentin 'sm4sh1k', 2012
 '--------------------------------------------------------------------------------------
@@ -39,8 +39,8 @@ Do Until objRecordSet.EOF
 		strUserGroups = strUserGroups & "[" & objGroup.Name & "]"
 	Next
 	If InGroup(strOWAGroup) Then
-		If InStr(objUser.protocolSettings, "HTTP§0") <> 0 Then
-			objUser.protocolSettings = Replace(objUser.protocolSettings, "HTTP§0", "HTTP§1", 1, 1)
+		If InStr(objUser.protocolSettings, "HTTPÂ§0") <> 0 Then
+			objUser.protocolSettings = Replace(objUser.protocolSettings, "HTTPÂ§0", "HTTPÂ§1", 1, 1)
 			objUser.SetInfo
 		End If
 		If objUser.msExchOmaAdminWirelessEnable <> "0" Then
@@ -48,8 +48,8 @@ Do Until objRecordSet.EOF
 			objUser.SetInfo
 		End If
 	Else
-		If InStr(objUser.protocolSettings, "HTTP§0") = 0 Then
-			objUser.protocolSettings = "HTTP§0§1§§§§§§"
+		If InStr(objUser.protocolSettings, "HTTPÂ§0") = 0 Then
+			objUser.protocolSettings = "HTTPÂ§0Â§1Â§Â§Â§Â§Â§Â§"
 			objUser.SetInfo
 		End If
 		If objUser.msExchOmaAdminWirelessEnable <> "7" Then

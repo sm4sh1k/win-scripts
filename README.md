@@ -1,4 +1,4 @@
-Useful scripts for Windows system administrators
+﻿Useful scripts for Windows system administrators
 ==============
 
 My collection of scripts for Windows operating system.

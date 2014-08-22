@@ -1,4 +1,4 @@
-'--------------------------------------------------------------------------------------
+﻿'--------------------------------------------------------------------------------------
 ' Disabling autorun for all drives
 ' Script tries to get administrative privileges if needed
 ' Author: Valentin 'sm4sh1k', 2012
