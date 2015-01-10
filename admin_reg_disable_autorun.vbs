@@ -1,7 +1,7 @@
 ﻿'--------------------------------------------------------------------------------------
 ' Disabling autorun for all drives
-' Script tries to get administrative privileges if needed
-' Author: Valentin 'sm4sh1k', 2012
+' Script tries to get administrative privileges if needed (supposed to be run interactively)
+' Author: Valentin Vakhrushev, 2012
 '--------------------------------------------------------------------------------------
 
 On Error Resume Next

@@ -1,6 +1,6 @@
 ﻿'--------------------------------------------------------------------------------------
 ' Creating folders for AD users in the shared folder and granting rights for them
-' Author: Valentin 'sm4sh1k', 2012
+' Author: Valentin Vakhrushev, 2012
 '--------------------------------------------------------------------------------------
 
 Option Explicit

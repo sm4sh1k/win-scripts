@@ -1,6 +1,6 @@
 ﻿'--------------------------------------------------------------------------------------
 ' Changing AD user properties to allow or deny OWA and OMA access depending on user group
-' Author: Valentin 'sm4sh1k', 2012
+' Author: Valentin Vakhrushev, 2012
 '--------------------------------------------------------------------------------------
 
 On Error Resume Next

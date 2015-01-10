@@ -2,13 +2,14 @@
 ' Registering file associations for LibreOffice
 ' Script tries to get administrative privileges if needed
 ' All messages and association descriptions are in russian. Change them if needed
-' Author: Valentin 'sm4sh1k', 2013
+' Author: Valentin Vakhrushev, 2013
 '--------------------------------------------------------------------------------------
 
 On Error Resume Next
 
 Const HKEY_LOCAL_MACHINE = &H80000002
 
+' Determining has user administrative privilegies or not (trying to read Administrator's registry hive)
 strKey = CreateObject("WScript.Shell").RegRead("HKEY_USERS\s-1-5-19\")
 If Err.Number <> 0 Then
 	Set objShell = CreateObject("Shell.Application")
@@ -27,6 +28,7 @@ Else
 	strKeyPath = "SOFTWARE\Wow6432Node\LibreOffice\Layers\LibreOffice"
 End If
 
+' Finding registry subkey for latest installation of LibreOffice (the biggest version number)
 Set objReg=GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\default:StdRegProv")
 objReg.EnumKey HKEY_LOCAL_MACHINE, strKeyPath, arrSubKeys
 strWorkDirPath = WSHShell.RegRead("HKLM\" & strKeyPath & "\" & _

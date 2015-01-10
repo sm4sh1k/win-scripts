@@ -1,0 +1,242 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1251" />
+<META http-equiv="MSThemeCompatible" content="Yes">
+<title>USB Drives Access Adjustment</title>
+<hta:application id="process" scroll="no" innerborder="no" icon="%windir%\system32\napstat.exe" border="dialog"/>
+<script>var w= {h: 150, w: 460}; window.resizeTo(w.w, w.h); window.moveTo((screen.width - w.w)/2, (screen.height - w.h)/2.5)</script>
+<style>
+select	{font: normal 11px/11px verdana, sans-serif;}
+body	{background-color: buttonface; text-align: center; font: normal 11px/11px verdana, sans-serif;}
+input	{font: normal 11px/11px verdana, sans-serif; margin: 0.2em;}
+table	{border: none; border-collapse: collapse; border-spacing: 0px}
+.but	{width: 90px; }
+.little	{font: normal 9px/9px verdana, sans-serif;}
+</style>
+</head>
+
+<script language="VBScript">
+Sub LoadLists()
+	Const adVarChar = 200
+	Const MaxCharacters = 255
+	Const ADS_SCOPE_SUBTREE = 2
+	'Set iAdRootDSE = GetObject("LDAP://RootDSE")
+	'strDistinguishedName = iAdRootDSE.Get("defaultNamingContext")
+	' Taking computer accounts in appropriated OU to make search faster
+	' Uncomment previous two lines and comment the following to search in all AD tree
+	strDistinguishedName = "OU=Computers,OU=MyBusiness,DC=Domain,DC=local"
+	
+	Set objConnection = CreateObject("ADODB.Connection")
+	Set objCommand = CreateObject("ADODB.Command")
+	objConnection.Provider = "ADsDSOObject"
+	objConnection.Open "Active Directory Provider"
+	Set objCOmmand.ActiveConnection = objConnection
+	' Taking only enabled computer accounts
+	objCommand.CommandText = "<LDAP://" & strDistinguishedName & ">;(&(objectClass=computer)" & _
+		"(!(userAccountControl:1.2.840.113556.1.4.803:=2)))" & _
+		";Name,Description;subtree"
+	objCommand.Properties("Page Size") = 1000
+	objCommand.Properties("Timeout") = 30 
+	objCommand.Properties("Searchscope") = ADS_SCOPE_SUBTREE 
+	objCommand.Properties("Cache Results") = False
+	
+	Set DataList = CreateObject("ADOR.Recordset")
+	DataList.Fields.Append "name", adVarChar, MaxCharacters
+	DataList.Fields.Append "Description", adVarChar, MaxCharacters
+	DataList.Open
+	
+	' Creating record for current computer
+	strList1 = "<select id=" & Chr(34) & "complist1" & Chr(34) & " size="& Chr(34) & _
+		"1"& Chr(34) & " name=" & Chr(34) & "list" & Chr(34) & ">"
+	strList1 = strList1 & "<option value=" & Chr(34) & "." & _
+			Chr(34) & ">" & "Current computer (localhost)</option>"
+	
+	Set objRecordSet = objCommand.Execute
+	objRecordSet.MoveFirst
+	Do Until objRecordSet.EOF
+		DataList.AddNew
+		DataList("name") = objRecordSet.Fields("name").Value
+		For Each ObjValue In objRecordSet.Fields("Description").Value
+			If Len(ObjValue) > 0 Then
+				DataList("Description") = ObjValue
+			End If
+			Exit For
+		Next
+		DataList.Update
+		objRecordSet.MoveNext
+	Loop
+	
+	DataList.Sort = "name"
+	DataList.MoveFirst
+	Do Until DataList.EOF
+		strTemp = "<option value=" & Chr(34) & DataList.Fields.Item("name") & _
+			Chr(34) & ">" & DataList.Fields.Item("name") & " (" & _
+			DataList.Fields.Item("Description") & ")</option>"
+		strList1 = strList1 & strTemp
+		DataList.MoveNext
+	Loop
+	
+	strList1 = strList1 & "</select>"
+	Set p1 = document.getElementById("list1")
+	p1.innerHTML = strList1
+End Sub
+
+Sub Enable()
+	If Available(complist1.value) = True Then
+		strKey = "HKLM\SYSTEM\CurrentControlSet\Services\UsbStor\Start"
+		Result = ChangeRegistryKey(complist1.value, strKey, 3)
+		Select Case Result
+				Case 0: strOut = "USB drives access adjustment is completed."
+				Case 1: strOut = "Can not find registry key (or access is denied)."
+				Case 2: strOut = "Can not change registry key! Access is denied!"
+				Case 3: strOut = "Unforeseen error! No changes have been made."
+			End Select
+		MsgBox strOut, vbInformation, "Grant access to USB drives"
+	Else
+		MsgBox "Can not change settings on computer " & _
+			complist1.value & "." & VbCrLf & VbCrLf & "Remote host is unavailable.", _
+			vbCritical, "Grant access to USB drives"
+	End If
+End Sub
+
+Sub Verify()
+	If Available(complist1.value) = True Then
+		strKey = "HKLM\SYSTEM\CurrentControlSet\Services\UsbStor\Start"
+		Result = ChangeRegistryKey(complist1.value, strKey, 999)
+		Select Case Result
+				Case 0: strOut = "USB drives access is enabled."
+				Case 1: strOut = "Can not find registry key (or access is denied)."
+				Case 2: strOut = "USB drives access is denied."
+				Case 3: strOut = "Wrong key value has been found!"
+			End Select
+		MsgBox strOut, vbInformation, "Check access to USB drives"
+	Else
+		MsgBox "Can not get current settings on computer " & _
+			complist1.value & "." & VbCrLf & VbCrLf & "Remote host is unavailable.", _
+			vbCritical, "Check access to USB drives"
+	End If
+End Sub
+
+Sub Disable()
+	If Available(complist1.value) = True Then
+		strKey = "HKLM\SYSTEM\CurrentControlSet\Services\UsbStor\Start"
+		Result = ChangeRegistryKey(complist1.value, strKey, 4)
+		Select Case Result
+				Case 0: strOut = "USB drives access adjustment is completed."
+				Case 1: strOut = "Can not find registry key (or access is denied)."
+				Case 2: strOut = "Can not change registry key! Access is denied!"
+				Case 3: strOut = "Unforeseen error! No changes have been made."
+			End Select
+		MsgBox strOut, vbInformation, "Deny access to USB drives"
+	Else
+		MsgBox "Can not change settings on computer " & _
+			complist1.value & "." & VbCrLf & VbCrLf & "Remote host is unavailable.", _
+			vbCritical, "Deny access to USB drives"
+	End If
+End Sub
+
+Function ChangeRegistryKey(parComp, parPath, parValue)
+	On Error Resume Next
+	Const HKEY_CLASSES_ROOT				= &H80000000
+	Const HKEY_CURRENT_USER				= &H80000001
+	Const HKEY_LOCAL_MACHINE			= &H80000002
+	Const HKEY_CURRENT_CONFIG			= &H80000005
+	Const con_READ_CONTROL				= 131072
+	Const con_KeyChangedSuccessfully	= 0
+	Const con_KeyDoesNotExist			= 1
+	Const con_AccessDenied				= 2
+	Const con_SomeOtherError			= 3
+	
+	Select Case Left(parPath,4)
+		Case "HKLM": parRoot = HKEY_LOCAL_MACHINE
+		Case "HKCU": parRoot = HKEY_CURRENT_USER
+		Case "HKCR": parRoot = HKEY_CLASSES_ROOT
+		Case "HKCC": parRoot = HKEY_CURRENT_CONFIG
+	End Select
+	parKey = Mid(parPath, InStrRev(parPath, "\") + 1)
+	parPath = Mid(Left(parPath, InStrRev(parPath, "\") - 1), 6)
+	bKeyExist = False
+	
+	Err.Clear
+	Set objReg = GetObject("winmgmts:{impersonationLevel=impersonate}!\\" & _
+			parComp & "\root\default:StdRegProv")
+	If Err.Number = 0 Then
+		If objReg.CheckAccess(parRoot, parPath, con_READ_CONTROL) = 0 Then
+			If objReg.EnumValues(parRoot, parPath, arrValueNames, arrValueTypes) = 0 Then
+				If Not IsNull(arrValueNames) Then
+					For i = 0 To UBound(arrValueNames)
+						If arrValueNames(i) = parKey Then
+							bKeyExist = True
+							Exit For
+						End If
+					Next
+				End If
+			End If
+			If bKeyExist = True Then
+				If parValue <> 999 Then
+					intResult = objReg.SetDWORDValue(parRoot, parPath, parKey, parValue)
+					If intResult = 0 Then 
+						ChangeRegistryKey = con_KeyChangedSuccessfully
+					ElseIf intResult = 5 Then
+						ChangeRegistryKey = con_AccessDenied
+					Else
+						ChangeRegistryKey = con_SomeOtherError
+					End If
+				Else
+					objReg.GetDWORDValue parRoot, parPath, parKey, intResult
+					If intResult = 3 Then
+						ChangeRegistryKey = con_KeyChangedSuccessfully
+					ElseIf intResult = 4 Then
+						ChangeRegistryKey = con_AccessDenied
+					Else
+						ChangeRegistryKey = con_SomeOtherError
+					End If
+				End If
+			Else
+				ChangeRegistryKey = con_KeyDoesNotExist
+			End If
+		Else
+			ChangeRegistryKey = con_KeyDoesNotExist
+		End If
+	Else
+		ChangeRegistryKey = con_KeyDoesNotExist
+	End If
+	Set objReg = Nothing
+End Function
+
+Function Available(name)
+    On Error Resume Next
+	If name <> "." Then
+		Set objPing = GetObject("winmgmts:{impersonationLevel=impersonate}")._
+			ExecQuery("select * from Win32_PingStatus where address = '"_
+				& name & "'")
+		For Each objStatus In objPing
+			If IsNull(objStatus.StatusCode) Or objStatus.StatusCode <> 0 Then 
+				Available = False
+			Else
+				Available = True
+			End If
+		Next
+	Else
+		Available = True
+	End If
+End Function
+</script>
+<body onLoad="LoadLists()">
+	<table width=100%>
+	<tr><td><table>
+	<tr><td align=left>Adjust access to USB drives for:&nbsp </td></tr>
+	<tr><td align=left><font id="list1">---</font></td></tr>
+	</table></td>
+	
+	<td><table cellpadding="0">
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Enable" onclick="this.disabled=true; Enable(); this.disabled=false;"></td></tr>
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Check" onclick="this.disabled=true; Verify(); this.disabled=false;"></td></tr>
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Disable" onclick="this.disabled=true; Disable(); this.disabled=false;"></td></tr>
+	</table></td></tr>
+	<tr><td colspan=2 align=center>&nbsp</td></tr>
+	<tr><td class="little" colspan=2 align=center>© Valentin Vakhrushev, 2011</td></tr>
+</table>
+</body>
+</html>

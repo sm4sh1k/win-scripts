@@ -1,0 +1,180 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<meta http-equiv="content-type" content="text/html; charset=windows-1251" />
+<META http-equiv="MSThemeCompatible" content="Yes">
+<title>E-mail redirection adjustment</title>
+<hta:application id="process" scroll="no" innerborder="no" icon="%windir%\system32\nusrmgr.cpl" border="dialog"/>
+<script>var w= {h: 167, w: 570}; window.resizeTo(w.w, w.h); window.moveTo((screen.width - w.w)/2, (screen.height - w.h)/2.5)</script>
+<style>
+select	{font: normal 11px/11px verdana, sans-serif;}
+body	{background-color: buttonface; text-align: center; font: normal 11px/11px verdana, sans-serif;}
+input	{font: normal 11px/11px verdana, sans-serif; margin: 0.2em;}
+table	{border: none; border-collapse: collapse; border-spacing: 0px}
+.but	{width: 90px; }
+.little	{font: normal 9px/9px verdana, sans-serif;}
+</style>
+</head>
+
+<script language="VBScript">
+Sub LoadLists()
+	Const adVarChar = 200
+	Const MaxCharacters = 255
+	Const ADS_SCOPE_SUBTREE = 2
+	'Set iAdRootDSE = GetObject("LDAP://RootDSE")
+	'strDistinguishedName = iAdRootDSE.Get("defaultNamingContext")
+	' Taking users accounts in appropriated OU to make search faster
+	' Uncomment previous two lines and comment the following to search in all AD tree
+	strDistinguishedName = "OU=Users,OU=MyBusiness,DC=Domain,DC=local"
+	
+	Set objConnection = CreateObject("ADODB.Connection")
+	Set objCommand = CreateObject("ADODB.Command")
+	objConnection.Provider = "ADsDSOObject"
+	objConnection.Open "Active Directory Provider"
+	Set objCOmmand.ActiveConnection = objConnection
+	' Taking only enabled user accounts with telephone and mail fields filled
+	objCommand.CommandText = "<LDAP://" & strDistinguishedName & ">;(&(objectCategory=person)" & _
+		"(objectClass=user)(telephoneNumber=*)(mail=*)" & _
+		"(!(userAccountControl:1.2.840.113556.1.4.803:=2)))" & _
+		";displayName,mail,telephoneNumber;subtree"
+	objCommand.Properties("Page Size") = 1000
+	objCommand.Properties("Timeout") = 30 
+	objCommand.Properties("Searchscope") = ADS_SCOPE_SUBTREE 
+	objCommand.Properties("Cache Results") = False
+	
+	Set DataList = CreateObject("ADOR.Recordset")
+	DataList.Fields.Append "displayName", adVarChar, MaxCharacters
+	DataList.Fields.Append "telephoneNumber", adVarChar, MaxCharacters
+	DataList.Fields.Append "Mail", adVarChar, MaxCharacters
+	DataList.Open
+	
+	strList1 = "<select id=" & Chr(34) & "userlist1" & Chr(34) & " size="& Chr(34) & _
+		"1"& Chr(34) & " name=" & Chr(34) & "list" & Chr(34) & ">"
+	strList2 = "<select id=" & Chr(34) & "userlist2" & Chr(34) & " size="& Chr(34) & _
+		"1"& Chr(34) & " name=" & Chr(34) & "list" & Chr(34) & ">"
+	strList2 = strList2 & "<option value=" & Chr(34) & "null" & _
+			Chr(34) & ">" & " </option>"
+	
+	Set objRecordSet = objCommand.Execute
+	objRecordSet.MoveFirst
+	Do Until objRecordSet.EOF
+		DataList.AddNew
+		DataList("displayName") = objRecordSet.Fields("displayName").Value
+		DataList("telephoneNumber") = objRecordSet.Fields("telephoneNumber").Value
+		DataList("Mail") = objRecordSet.Fields("mail").Value
+		DataList.Update
+		objRecordSet.MoveNext
+	Loop
+	
+	DataList.Sort = "displayName"
+	DataList.MoveFirst
+	Do Until DataList.EOF
+		strTemp = "<option value=" & Chr(34) & DataList.Fields.Item("Mail") & _
+			Chr(34) & ">" & DataList.Fields.Item("displayName") & " (" & _
+			DataList.Fields.Item("Mail") & ")</option>"
+		strList1 = strList1 & strTemp
+		strList2 = strList2 & strTemp
+		DataList.MoveNext
+	Loop
+	
+	strList1 = strList1 & "</select>"
+	strList2 = strList2 & "</select>"
+	Set p1 = document.getElementById("list1")
+	p1.innerHTML = strList1
+	Set p2 = document.getElementById("list2")
+	p2.innerHTML = strList2
+End Sub
+
+Sub Enable()
+	Const ADS_PROPERTY_CLEAR = 1
+	strMailboxToModify = userlist1.value
+	If userlist2.value <> "null" Then 
+		strAddressToForwardTo = userlist2.value
+		Set objMailbox = GetObject("LDAP://" & GetUserDN(strMailboxToModify))
+		objMailbox.altRecipient = GetUserDN(strAddressToForwardTo)
+		objMailbox.SetInfo
+		MsgBox "Changing e-mail redirection options for user: " & VbCrLf & _
+			objMailbox.displayName & "." & VbCrLf & VbCrLf & _
+			"Inbound e-mail is redirected to: " & strAddressToForwardTo & ".", _
+			vbInformation, "E-mail redirection"
+	Else
+		MsgBox "Choose user account which will receive redirected e-mail!", vbExclamation, "E-mail redirection"
+	End If
+	
+	
+End Sub
+
+Sub Verify()
+	Const ADS_PROPERTY_CLEAR = 1
+	strMailboxToModify = userlist1.value
+	
+	Set objMailbox = GetObject("LDAP://" & GetUserDN(strMailboxToModify))
+	If Len(objMailbox.altRecipient) > 0 Then
+		Set objMailbox2 = GetObject("LDAP://" & objMailbox.altRecipient)
+		MsgBox "Checking e-mail redirection adjustment for user: " & VbCrLf & _
+			objMailbox.displayName & "." & VbCrLf & VbCrLf & _
+			"Inbound e-mail is redirected to: " & VbCrLf & objMailbox2.displayName & ".", _
+			vbInformation, "E-mail redirection"
+	Else
+		MsgBox "Checking e-mail redirection adjustment for user: " & VbCrLf & _
+			objMailbox.displayName & "." & VbCrLf & VbCrLf & _
+			"Inbound e-mail is not redirected.", vbInformation, "E-mail redirection"
+	End If
+End Sub
+
+Sub Disable()
+	Const ADS_PROPERTY_CLEAR = 1
+	strMailboxToModify = userlist1.value
+	
+	Set objMailbox = GetObject("LDAP://" & GetUserDN(strMailboxToModify))
+	objMailbox.PutEx ADS_PROPERTY_CLEAR, "altrecipient", 0
+	objMailbox.SetInfo
+	
+	MsgBox "Changing e-mail redirection options for user: " & VbCrLf & _
+		objMailbox.displayName & "." & VbCrLf & VbCrLf & _
+		"Inbound e-mail is not redirected.", vbInformation, "E-mail redirection"
+End Sub
+
+Function GetUserDN(strEmailAddress)
+	Set objConnection = CreateObject("ADODB.Connection")
+	Set objCommand = CreateObject("ADODB.Command")
+	'Set iAdRootDSE = GetObject("LDAP://RootDSE")
+	'strNamingContext = iAdRootDSE.Get("defaultNamingContext")
+	' Taking users accounts in appropriated OU to make search faster
+	' Uncomment previous two lines and comment the following to search in all AD tree
+	strNamingContext = "OU=Users,OU=MyBusiness,DC=Domain,DC=local"
+	
+	objConnection.Provider = "ADsDSOObject"
+	objConnection.Open "ADs Provider"
+	objCommand.ActiveConnection = objConnection
+	objCommand.CommandText = "<LDAP://" & strNamingContext & ">;(&(objectclass=user)" & _
+		"(mail=" & strEmailAddress & "));name,distinguishedName;subtree"
+	
+	Set objRecordSet = objCommand.Execute
+	While Not objRecordSet.EOF
+		strUserDN = objRecordSet.Fields("distinguishedName")
+		objRecordSet.MoveNext
+	Wend
+	GetUserDN = strUserDN
+End Function
+</script>
+<body onLoad="LoadLists()">
+	<table width=100%>
+	<tr><td><table>
+	<tr><td align=left>Adjust redirection for:&nbsp </td></tr>
+	<tr><td align=left><font id="list1">---</font></td></tr>
+	<tr><td><br></td></tr>
+	<tr><td align=left>Redirect e-mail to:&nbsp </td></tr>
+	<tr><td align=left><font id="list2">---</font></td></tr>
+	</table></td>
+	
+	<td><table cellpadding="3">
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Enable" onclick="this.disabled=true; Enable(); this.disabled=false;"></td></tr>
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Check" onclick="this.disabled=true; Verify(); this.disabled=false;"></td></tr>
+	<tr><td align=right>&nbsp <input class="but" type="button" value="Disable" onclick="this.disabled=true; Disable(); this.disabled=false;"></td></tr>
+	</table></td></tr>
+	<tr><td colspan=2 align=center>&nbsp</td></tr>
+	<tr><td class="little" colspan=2 align=center>© Valentin Vakhrushev, 2011</td></tr>
+</table>
+</body>
+</html>
