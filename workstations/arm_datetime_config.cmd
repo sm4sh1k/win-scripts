@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 
 ::Automatic adjustment of time synchronization service for remote workstations with Windows XP
 ::Script sequentially performs next actions:
@@ -20,7 +20,7 @@ w32tm /unregister
 w32tm /register
 ::Changing name of service. Default name is "Windows Time Service"
 ::The service name must be written in OEM866 codepage!
-sc config w32time displayname= "��㦡� �६��� Windows"
+sc config w32time displayname= "Служба времени Windows"
 
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\W32Time\Config" /v "MaxNegPhaseCorrection" /t REG_DWORD /d "60" /f
 reg add "HKLM\SYSTEM\CurrentControlSet\Services\W32Time\Config" /v "MaxPosPhaseCorrection" /t REG_DWORD /d "6400" /f
