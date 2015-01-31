@@ -1,8 +1,8 @@
-'--------------------------------------------------------------------------------------
-' Автоматическое создание профиля 1С для новых пользователей в домене
-' Скрипт создает файл ibases.v8i в профиле пользователя с указанной базой данных
-' Предполагается использование совместно с групповыми политиками
-' Автор: Вахрушев Валентин, 2010
+п»ї'--------------------------------------------------------------------------------------
+' РђРІС‚РѕРјР°С‚РёС‡РµСЃРєРѕРµ СЃРѕР·РґР°РЅРёРµ РїСЂРѕС„РёР»СЏ 1РЎ РґР»СЏ РЅРѕРІС‹С… РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ РІ РґРѕРјРµРЅРµ
+' РЎРєСЂРёРїС‚ СЃРѕР·РґР°РµС‚ С„Р°Р№Р» ibases.v8i РІ РїСЂРѕС„РёР»Рµ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ СЃ СѓРєР°Р·Р°РЅРЅРѕР№ Р±Р°Р·РѕР№ РґР°РЅРЅС‹С…
+' РџСЂРµРґРїРѕР»Р°РіР°РµС‚СЃСЏ РёСЃРїРѕР»СЊР·РѕРІР°РЅРёРµ СЃРѕРІРјРµСЃС‚РЅРѕ СЃ РіСЂСѓРїРїРѕРІС‹РјРё РїРѕР»РёС‚РёРєР°РјРё
+' РђРІС‚РѕСЂ: Р’Р°С…СЂСѓС€РµРІ Р’Р°Р»РµРЅС‚РёРЅ, 2010
 '--------------------------------------------------------------------------------------
 
 On Error Resume Next
@@ -20,27 +20,27 @@ Set ObjUser = GetObject("LDAP://" & strUserDN)
 
 strProfileDir = WSHShell.ExpandEnvironmentStrings("%APPDATA%\1C\1CEStart")
 strProfileFile = "ibases.v8i"
-' Конфигурационный файл со списком баз 1С
-' Формат файла (поля разделяются знаками табуляции): <сервер> <описание> <имя_БД> <версия_1С>
-' Например: srv10-1c	База данных		base	8.2
+' РљРѕРЅС„РёРіСѓСЂР°С†РёРѕРЅРЅС‹Р№ С„Р°Р№Р» СЃРѕ СЃРїРёСЃРєРѕРј Р±Р°Р· 1РЎ
+' Р¤РѕСЂРјР°С‚ С„Р°Р№Р»Р° (РїРѕР»СЏ СЂР°Р·РґРµР»СЏСЋС‚СЃСЏ Р·РЅР°РєР°РјРё С‚Р°Р±СѓР»СЏС†РёРё): <СЃРµСЂРІРµСЂ> <РѕРїРёСЃР°РЅРёРµ> <РёРјСЏ_Р‘Р”> <РІРµСЂСЃРёСЏ_1РЎ>
+' РќР°РїСЂРёРјРµСЂ: srv10-1c	Р‘Р°Р·Р° РґР°РЅРЅС‹С…		base	8.2
 strConfigPath = "\\srv20-dc\Configs$\1C\1cv82.txt"
-strMsg = "Создание профиля 1С для пользователя " & WSHNetwork.UserName & "." & vbCrlf & vbCrlf
+strMsg = "РЎРѕР·РґР°РЅРёРµ РїСЂРѕС„РёР»СЏ 1РЎ РґР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ " & WSHNetwork.UserName & "." & vbCrlf & vbCrlf
 UserGroups = vbNullString
 
-' Если профиль 1С уже создан, скрипт завершает работу
+' Р•СЃР»Рё РїСЂРѕС„РёР»СЊ 1РЎ СѓР¶Рµ СЃРѕР·РґР°РЅ, СЃРєСЂРёРїС‚ Р·Р°РІРµСЂС€Р°РµС‚ СЂР°Р±РѕС‚Сѓ
 If objFSO.FileExists(strProfileDir & "\" & strProfileFile) = True Then WScript.Quit()
 
-' Получаем список всех групп пользователя в Active Directory (с учетом вложенности)
+' РџРѕР»СѓС‡Р°РµРј СЃРїРёСЃРѕРє РІСЃРµС… РіСЂСѓРїРї РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ РІ Active Directory (СЃ СѓС‡РµС‚РѕРј РІР»РѕР¶РµРЅРЅРѕСЃС‚Рё)
 For Each objGroup In ObjUser.Groups
 	UserGroups = UserGroups & "[" & objGroup.CN & "]"
 	GetNested(objGroup)
 	Err.Clear
 Next
 
-' Профиль создается только для пользователей в определенных группах
-If (InGroup("Пользователи 1С") = False _
-	And InGroup("Администраторы 1С") = False) _
-	Or InGroup("Привлеченные специалисты") = True Then
+' РџСЂРѕС„РёР»СЊ СЃРѕР·РґР°РµС‚СЃСЏ С‚РѕР»СЊРєРѕ РґР»СЏ РїРѕР»СЊР·РѕРІР°С‚РµР»РµР№ РІ РѕРїСЂРµРґРµР»РµРЅРЅС‹С… РіСЂСѓРїРїР°С…
+If (InGroup("РџРѕР»СЊР·РѕРІР°С‚РµР»Рё 1РЎ") = False _
+	And InGroup("РђРґРјРёРЅРёСЃС‚СЂР°С‚РѕСЂС‹ 1РЎ") = False) _
+	Or InGroup("РџСЂРёРІР»РµС‡РµРЅРЅС‹Рµ СЃРїРµС†РёР°Р»РёСЃС‚С‹") = True Then
 		WScript.Quit()
 End If
 
@@ -52,12 +52,12 @@ If objFSO.FolderExists(strProfileDir) = False Then
 End If
 
 If (Err.Number <> 0) Then
-	strMsg = strMsg & "ОШИБКА! Не удалось создать папку профиля."
+	strMsg = strMsg & "РћРЁРР‘РљРђ! РќРµ СѓРґР°Р»РѕСЃСЊ СЃРѕР·РґР°С‚СЊ РїР°РїРєСѓ РїСЂРѕС„РёР»СЏ."
 	WSHShell.LogEvent 1, strMsg, WSHNetwork.ComputerName
 	WScript.Quit()
 End If
 
-' Парсинг конфигурационного файла и генерация файла профиля 1С
+' РџР°СЂСЃРёРЅРі РєРѕРЅС„РёРіСѓСЂР°С†РёРѕРЅРЅРѕРіРѕ С„Р°Р№Р»Р° Рё РіРµРЅРµСЂР°С†РёСЏ С„Р°Р№Р»Р° РїСЂРѕС„РёР»СЏ 1РЎ
 If objFSO.FileExists(strConfigPath) = True Then
 	Set DataList = CreateObject("ADOR.Recordset")
 	DataList.Fields.Append "Srvr", adVarChar, MaxCharacters
@@ -87,21 +87,21 @@ If objFSO.FileExists(strConfigPath) = True Then
 		DataList.MoveNext
 	Loop
 	
-	' Все сообщения пишутся в журнал событий
+	' Р’СЃРµ СЃРѕРѕР±С‰РµРЅРёСЏ РїРёС€СѓС‚СЃСЏ РІ Р¶СѓСЂРЅР°Р» СЃРѕР±С‹С‚РёР№
 	If Err.Number = 0 Then
 		WSHShell.LogEvent 4, strMsg, WSHNetwork.ComputerName
 	Else
-		strMsg = strMsg & vbCrlf & "ОШИБКА! Код ошибки: " & Err.Number & "." & vbCrlf & _
-			"Описание: " & Err.Description
+		strMsg = strMsg & vbCrlf & "РћРЁРР‘РљРђ! РљРѕРґ РѕС€РёР±РєРё: " & Err.Number & "." & vbCrlf & _
+			"РћРїРёСЃР°РЅРёРµ: " & Err.Description
 		WSHShell.LogEvent 1, strMsg, WSHNetwork.ComputerName
 	End If
 Else
-	strMsg = strMsg & "ОШИБКА! Конфигурационный файл не найден."
+	strMsg = strMsg & "РћРЁРР‘РљРђ! РљРѕРЅС„РёРіСѓСЂР°С†РёРѕРЅРЅС‹Р№ С„Р°Р№Р» РЅРµ РЅР°Р№РґРµРЅ."
 	WSHShell.LogEvent 1, strMsg, WSHNetwork.ComputerName
 End If
 
 
-' Процедура генерации секции конфигурационного файла 1С
+' РџСЂРѕС†РµРґСѓСЂР° РіРµРЅРµСЂР°С†РёРё СЃРµРєС†РёРё РєРѕРЅС„РёРіСѓСЂР°С†РёРѕРЅРЅРѕРіРѕ С„Р°Р№Р»Р° 1РЎ
 Sub Sub_WriteSection()
 	Randomize
 	Set TextStream = objFSO.OpenTextFile(strProfileDir & "\" & strProfileFile, 8, True)
@@ -118,10 +118,10 @@ Sub Sub_WriteSection()
 	TextStream.WriteLine "WA=0"
 	TextStream.WriteLine "Version=" & DataList.Fields.Item("Ver")
 	TextStream.Close
-	strMsg = strMsg & "Добавлена запись для " & DataList.Fields.Item("Srvr") & "." & vbCrlf
+	strMsg = strMsg & "Р”РѕР±Р°РІР»РµРЅР° Р·Р°РїРёСЃСЊ РґР»СЏ " & DataList.Fields.Item("Srvr") & "." & vbCrlf
 End Sub
 
-' Функция для генерации уникального ID базы в профиле
+' Р¤СѓРЅРєС†РёСЏ РґР»СЏ РіРµРЅРµСЂР°С†РёРё СѓРЅРёРєР°Р»СЊРЅРѕРіРѕ ID Р±Р°Р·С‹ РІ РїСЂРѕС„РёР»Рµ
 Function GenerateID()
 	GenerateID = GenDig & GenDig & GenDig & GenDig & GenDig & GenDig & GenDig & GenDig & "-" & _
 		GenDig & GenDig & GenDig & GenDig & "-" & GenDig & GenDig & GenDig & GenDig & "-" & _
@@ -129,7 +129,7 @@ Function GenerateID()
 		GenDig & GenDig & GenDig & GenDig & GenDig & GenDig & GenDig & GenDig
 End Function
 
-' Функция для генерации цифры в шестнадцатиричном формате
+' Р¤СѓРЅРєС†РёСЏ РґР»СЏ РіРµРЅРµСЂР°С†РёРё С†РёС„СЂС‹ РІ С€РµСЃС‚РЅР°РґС†Р°С‚РёСЂРёС‡РЅРѕРј С„РѕСЂРјР°С‚Рµ
 Function GenDig()
 	Randomize
 	strDigit = vbNullString
@@ -153,7 +153,7 @@ Function GenDig()
 	GenDig = strDigit
 End Function
 
-' Функция для проверки входит ли пользователь в группу
+' Р¤СѓРЅРєС†РёСЏ РґР»СЏ РїСЂРѕРІРµСЂРєРё РІС…РѕРґРёС‚ Р»Рё РїРѕР»СЊР·РѕРІР°С‚РµР»СЊ РІ РіСЂСѓРїРїСѓ
 Function InGroup(strGroup)
 	InGroup = False
 	If InStr(UserGroups, "[" & strGroup & "]") Then
@@ -161,7 +161,7 @@ Function InGroup(strGroup)
 	End If
 End Function
 
-' Функция для поиска всех вложенных групп пользователя
+' Р¤СѓРЅРєС†РёСЏ РґР»СЏ РїРѕРёСЃРєР° РІСЃРµС… РІР»РѕР¶РµРЅРЅС‹С… РіСЂСѓРїРї РїРѕР»СЊР·РѕРІР°С‚РµР»СЏ
 Function GetNested(objGroup)
 	On Error Resume Next
 	colMembers = objGroup.GetEx("memberOf")
