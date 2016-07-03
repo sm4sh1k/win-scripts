@@ -9,7 +9,7 @@
 ' 4) In my circumstances it is needed to restart 'Server' service after that,
 '    because of shared folder placed on encrypted volume
 ' 5) Then script waits 10 minutes when the user extracts flash disk with a key file
-' 6) If user was not extract flash disk during this time then encrypted volume is
+' 6) If the user did not extract flash disk during this time then encrypted volume is
 '    locked again. This mechanism was added to avoid situation when the user
 '    forgets flash disk in a computer
 ' 7) All messages are written in event log
@@ -21,6 +21,7 @@
 
 On Error Resume Next
 
+' Exit if another instance of the script is already running
 Set objWMIService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
 Set colProc = objWMIService.ExecQuery("SELECT * FROM Win32_Process WHERE CommandLine LIKE '%" & _
 	WScript.ScriptName & "%'")
@@ -28,13 +29,17 @@ If colProc.Count > 1 Then WScript.Quit()
 
 Set WshShell = CreateObject("WScript.Shell")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
-
 strComputerName = WshShell.ExpandEnvironmentStrings("%COMPUTERNAME%")
-strKeyFileSubPath = "1234ABCD-EF123-4567-89AB-CDEF98765432.BEK"
-strCommand = "manage-bde -unlock D: -RecoveryKey "
-strComUnmount = "manage-bde -lock D: -ForceDismount"
 bMonitoring = True
 
+' Define a key file name here
+strKeyFileSubPath = "1234ABCD-EF123-4567-89AB-CDEF98765432.BEK"
+' Type a drive letter of encrypted volume here (in my case it is a disk D:)
+strCommand = "manage-bde -unlock D: -RecoveryKey "
+strComUnmount = "manage-bde -lock D: -ForceDismount"
+
+' Detect when the flash disk was inserted looking for new drive letters
+' Type here drive letters which can be used for appointment to flash disks
 colDrives = Split("F: G: H: I: J:")
 While bMonitoring = True
 	For Each Drive In colDrives
