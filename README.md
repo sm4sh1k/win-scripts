@@ -1,7 +1,7 @@
 ﻿Useful scripts for Windows system administrators
 ==============
 
-My collection of scripts for Windows operating system.
+My collection of scripts for Windows operating system I would like to share.
 Most of them were used to automate administering of Windows-based infrastructure with Active Directory domain.
 All these scripts were written by me sometimes using adopted code from various free scripts founded on the Web.
 
