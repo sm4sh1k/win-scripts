@@ -2,14 +2,14 @@
 ' Generating report about installed software
 ' Script creates text file with list of installed software on current PC
 ' Designed to run as scheduled job installed with Group Policy Settings
-' TODO: Add 32bit applications support on 64bit OS
-' Author: Valentin Vakhrushev, 2010
+' Author: Valentin Vakhrushev, 2010-2017
 '--------------------------------------------------------------------------------------
 
 On Error Resume Next
 
 Const HKEY_LOCAL_MACHINE = &H80000002
 
+Set WshShell = WScript.CreateObject("WScript.Shell")
 Set WshNetwork = CreateObject("WScript.Network")
 Set objFSO = CreateObject("Scripting.FileSystemObject")
 Set objService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\CIMV2")
@@ -18,12 +18,15 @@ Set objService = GetObject("winmgmts:{impersonationLevel=impersonate}!\\.\root\C
 ' Type here appropriate path and filename of the report
 strOutFile = "\\SRV01\Info$\Soft\" & WshNetwork.ComputerName & ".txt"
 
-strMsg =  "Report date: " & Date() & vbCrlf & "Computer: " & WshNetwork.ComputerName & vbCrlf
+Set txtStreamOut = objFSO.OpenTextFile(strOutFile, 2, True)
+txtStreamOut.WriteLine "Report date: " & Date()
+txtStreamOut.WriteLine "Computer: " & WshNetwork.ComputerName
 nCount = 1
 
 Set colSettings = objService.ExecQuery ("Select * from Win32_OperatingSystem")
 For Each objOperatingSystem in colSettings
-	strMsg = strMsg & "Description: " & objOperatingSystem.Description & vbCrlf & vbCrlf
+	txtStreamOut.WriteLine "Description: " & objOperatingSystem.Description
+	txtStreamOut.WriteLine
 Next
 
 Set IPConfigSet = objService.ExecQuery _
@@ -31,9 +34,10 @@ Set IPConfigSet = objService.ExecQuery _
 For Each IPConfig in IPConfigSet
 	If Not IsNull(IPConfig.IPAddress) Then 
 		For Each IPAddress In IPConfig.IPAddress
-			strMsg = strMsg & "IP address: " & IPAddress & vbCrlf
+			txtStreamOut.WriteLine  "IP address: " & IPAddress
 		Next
-		strMsg = strMsg & "MAC address: " & IPConfig.MACAddress & vbCrlf & vbCrlf
+		txtStreamOut.WriteLine  "MAC address: " & IPConfig.MACAddress
+		txtStreamOut.WriteLine
 		Exit For
 	End If
 Next
@@ -45,23 +49,26 @@ For Each subkey In arrSubKeys
 	EnumerateValues (strKeyPath & "\" & subkey)
 Next
 
-Set txtStreamOut = objFSO.OpenTextFile(strOutFile, 2, True)
-txtStreamOut.Write strMsg
+' Get information about 32bit applications on 64bit OS
+If WshShell.ExpandEnvironmentStrings("%PROGRAMFILES(X86)%") <> "%PROGRAMFILES(X86)%" Then
+	strKeyPath = "SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall"
+	objReg.EnumKey HKEY_LOCAL_MACHINE, strKeyPath, arrSubKeys
+	For Each subKey In arrSubKeys
+		EnumerateValues (strKeyPath & "\" & subKey)
+	Next
+End If
+
 txtStreamOut.Close
 
 
 Sub EnumerateValues(strSubKey)
-	Dim DisplayName, UninstallString
 	objReg.EnumValues HKEY_LOCAL_MACHINE, strSubKey, arrValueNames, arrValueTypes
-	
 	For Each strValueName In arrValueNames
 		objReg.GetStringValue HKEY_LOCAL_MACHINE, strSubKey, strValueName, strValue
 		If UCase(strValueName) = "DISPLAYNAME" Then DisplayName = strValue
-		If UCase(strValueName) = "UNINSTALLSTRING" Then UninstallString = strValue
 	Next
 	If DisplayName <> vbNullString Then
-		strMsg = strMsg & nCount & vbTab & DisplayName & vbCrlf 
-			'& vbNewLine & ">  " & UninstallString & vbCrlf
+		txtStreamOut.WriteLine nCount & vbTab & DisplayName
 		nCount = nCount + 1
 	End If
 End Sub

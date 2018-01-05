@@ -13,3 +13,4 @@
 
 * **admin_reg_set_ext_lo.vbs**. Registering file associations for LibreOffice. Script tries to determine installation path of LibreOffice and get administrative privileges if needed. All messages and association descriptions are in russian. You can translate them using Google Translate or something...
 
+* **AdminPassChanger.au3**. AutoIt Application for remote changing local administrator password on domain computers. Script finds computers accounts in given OU of Active Directory domain and tries to change local administrator password on each active computer. Login of local administrator is found automatically by script.

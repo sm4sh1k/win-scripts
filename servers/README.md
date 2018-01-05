@@ -12,3 +12,5 @@ Scripts designed to be run on servers as scheduled tasks
 * **fb_backup_level0.cmd**, **fb_backup_level1.cmd** and **fb_backup_level2.cmd**. A set of scripts for perfoming incremental everyday backups, weekly backups and full monthly backups of Firebird database using *nbackup* utility. Database snapshots are archived with 7-zip. Old archives are removed automaticaly.
 
 * **mount_bitlocker_volume.vbs**. Script for automatic mounting BitLocker encrypted volume when USB flash disk with key file is inserted. The algorithm is quite simple: we start the file server with encrypted volume, then insert flash stick with key file. Script starts automaticaly via scheduled tasks and determines the flash drive inserted or not. If the key file is found encrypted volume is unlocked. Then operator has to eject the flash drive and put it safely away. Otherwise volume is locked again.
+
+* **reload_apcupsd_driver.vbs**. Script for automatic restart the driver and Apcupsd service if the connection between APC UPS and the computer has been lost. Driver reloading is implemented using DevCon program provided by Microsoft. Script is designed to run via scheduler.
