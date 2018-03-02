@@ -11,6 +11,8 @@ Scripts designed to be run on domain workstations during startup process
 
 * **get_info_hardware.vbs**. Script for generating text report about installed hardware and Microsoft products.
 
+* **GetComputerInfo.ps1**. Script for generating report about installed hardware and saving it in HTML file. Works in both legacy and modern versions of Windows.
+
 * **get_info_installed_soft.vbs**. Script for generating text report about installed software.
 
 * **reg_disable_java_updates.vbs**. Script for disabling Java Runtime Environment (JRE) automatic updates.
