@@ -6,13 +6,16 @@
 # writed by Paul Cunningham and distributed under MIT License:
 # https://gallery.technet.microsoft.com/scriptcenter/PowerShell-Collect-Server-089f1da3
 
+[CmdletBinding()]
+Param()
+
 function Get-ProductKey {
 	$map="BCDFGHJKMPQRTVWXY2346789"
 	Try {
 		$value = (Get-ItemProperty -path 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion').DigitalProductId[0x34..0x42]
 		$isWin8OrNewer = [math]::Floor(($value[14] / 6)) -band 1
 		$value[14] = ($value[14] -band 0xF7) -bor (($isWin8OrNewer -band 2) * 4)
-		$ProductKey = ""  
+		$ProductKey = ""
 		for ($i = 24; $i -ge 0; $i--) {
 			$r = 0
 			for ($j = 14; $j -ge 0; $j--) {
@@ -44,6 +47,7 @@ Write-Verbose "Initializing"
 $ServerFolder = "\\SRV01\Info$\"
 $ComputerName = $env:computername
 $Description = (Get-WmiObject Win32_OperatingSystem -ErrorAction STOP).Description
+$isVistaOrNewer = @([int]((Get-WmiObject Win32_OperatingSystem).Version -split '\.')[0] -ge 6)
 
 # Process ComputerName
 Write-Verbose "=====> Processing $ComputerName <====="
@@ -239,28 +243,50 @@ $htmlbody += $subhead
 Write-Verbose "Collecting network interface information"
 try {
 	$nics = @()
-	$nicinfo = @(Get-WmiObject Win32_NetworkAdapter -ErrorAction STOP | Where {$_.PhysicalAdapter} |
-		Select-Object Name,AdapterType,MACAddress,
-		@{Name='ConnectionName';Expression={$_.NetConnectionID}},
-		@{Name='Enabled';Expression={$_.NetEnabled}},
-		@{Name='Speed';Expression={$_.Speed/1000000}})
-	$nwinfo = Get-WmiObject Win32_NetworkAdapterConfiguration -ErrorAction STOP |
-		Select-Object Description, DHCPServer,  
-		@{Name='IpAddress';Expression={$_.IpAddress -join '; '}},  
-		@{Name='IpSubnet';Expression={$_.IpSubnet -join '; '}},  
-		@{Name='DefaultIPgateway';Expression={$_.DefaultIPgateway -join '; '}},  
-		@{Name='DNSServerSearchOrder';Expression={$_.DNSServerSearchOrder -join '; '}}
-	foreach ($nic in $nicinfo) {
-		$nicObject = New-Object PSObject
-		$nicObject | Add-Member NoteProperty -Name "Connection Name" -Value $nic.connectionname
-		$nicObject | Add-Member NoteProperty -Name "Adapter Name" -Value $nic.Name
-		$nicObject | Add-Member NoteProperty -Name "Type" -Value $nic.AdapterType
-		$nicObject | Add-Member NoteProperty -Name "MAC" -Value $nic.MACAddress
-		$nicObject | Add-Member NoteProperty -Name "Enabled" -Value $nic.Enabled
-		$nicObject | Add-Member NoteProperty -Name "Speed (Mbps)" -Value $nic.Speed
-		$ipaddress = ($nwinfo | Where {$_.Description -eq $nic.Name}).IpAddress
-		$nicObject | Add-Member NoteProperty -Name "IPAddress" -Value $ipaddress
-		$nics += $nicObject
+	# Windows XP does not provide some Win32_NetworkAdapter's properties
+	if ($isVistaOrNewer) {
+		$nicinfo = @(Get-WmiObject Win32_NetworkAdapter -ErrorAction STOP | Where {$_.PhysicalAdapter} |
+			Select-Object Name,AdapterType,MACAddress,
+			@{Name='ConnectionName';Expression={$_.NetConnectionID}},
+			@{Name='Enabled';Expression={$_.NetEnabled}},
+			@{Name='Speed';Expression={$_.Speed/1000000}})
+		$nwinfo = @(Get-WmiObject Win32_NetworkAdapterConfiguration -ErrorAction STOP |
+			Select-Object Description,DHCPServer,
+			@{Name='IpAddress';Expression={$_.IpAddress -join '; '}},
+			@{Name='IpSubnet';Expression={$_.IpSubnet -join '; '}},
+			@{Name='DefaultIPgateway';Expression={$_.DefaultIPgateway -join '; '}},
+			@{Name='DNSServerSearchOrder';Expression={$_.DNSServerSearchOrder -join '; '}})
+		foreach ($nic in $nicinfo) {
+			$nicObject = New-Object PSObject
+			$nicObject | Add-Member NoteProperty -Name "Connection Name" -Value $nic.connectionname
+			$nicObject | Add-Member NoteProperty -Name "Adapter Name" -Value $nic.Name
+			$nicObject | Add-Member NoteProperty -Name "Type" -Value $nic.AdapterType
+			$nicObject | Add-Member NoteProperty -Name "MAC" -Value $nic.MACAddress
+			$nicObject | Add-Member NoteProperty -Name "Enabled" -Value $nic.Enabled
+			$nicObject | Add-Member NoteProperty -Name "Speed (Mbps)" -Value $nic.Speed
+			$ipaddress = ($nwinfo | Where {$_.Description -eq $nic.Name}).IpAddress
+			$nicObject | Add-Member NoteProperty -Name "IP Address" -Value $ipaddress
+			$nics += $nicObject
+		}
+	}
+	else {
+		$nicinfo = @(Get-WmiObject Win32_NetworkAdapter -ErrorAction STOP |
+			Where {$_.Manufacturer -ne 'Microsoft' -And $_.PNPDeviceID -notlike 'ROOT\\%' -And $_.MACAddress} |
+				Select-Object DeviceID,Name,AdapterType,MACAddress,
+				@{Name='ConnectionName';Expression={$_.NetConnectionID}})
+		$nwinfo = @(Get-WmiObject Win32_NetworkAdapterConfiguration -ErrorAction STOP |
+			Select-Object Index,Description,
+			@{Name='IpAddress';Expression={$_.IpAddress -join '; '}})
+		foreach ($nic in $nicinfo) {
+			$nicObject = New-Object PSObject
+			$nicObject | Add-Member NoteProperty -Name "Connection Name" -Value $nic.connectionname
+			$nicObject | Add-Member NoteProperty -Name "Adapter Name" -Value $nic.Name
+			$nicObject | Add-Member NoteProperty -Name "Type" -Value $nic.AdapterType
+			$nicObject | Add-Member NoteProperty -Name "MAC" -Value $nic.MACAddress
+			$ipaddress = ($nwinfo | Where {$_.Index -eq $nic.DeviceID}).IpAddress
+			$nicObject | Add-Member NoteProperty -Name "IP Address" -Value $ipaddress
+			$nics += $nicObject
+		}
 	}
 	$htmlbody += $nics | ConvertTo-Html -Fragment
 	$htmlbody += $spacer
@@ -295,7 +321,7 @@ $htmlbody += $subhead
 Write-Verbose "Collecting volume information"
 try {
 	# Windows XP does not provide Win32_Volume WMI object
-	if ([int]((Get-WmiObject Win32_OperatingSystem).Version -split '\.')[0] -ge 6) {
+	if ($isVistaOrNewer) {
 		$volinfo = Get-WmiObject Win32_Volume -ErrorAction STOP | 
 			Select-Object Label,Name,DeviceID,SystemVolume,
 			@{Expression={$_.Capacity /1Gb -as [int]};Label="Total Size (GB)"},
@@ -347,6 +373,7 @@ try {
 	$software = Get-WmiObject Win32_Product -ErrorAction STOP | Select-Object Vendor,Name,Version | Sort-Object Vendor,Name
 	$htmlbody += $software | ConvertTo-Html -Fragment
 	$htmlbody += $spacer 
+
 }
 catch {
 	Write-Warning $_.Exception.Message
@@ -357,6 +384,7 @@ catch {
 # Generate the HTML report and output to file
 Write-Verbose "Producing HTML report"
 $reportime = Get-Date
+
 #Common HTML head and styles
 $htmlhead="<html>
 			<style>

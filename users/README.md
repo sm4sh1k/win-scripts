@@ -14,3 +14,5 @@ Scripts designed to run under user account during logon process
 * **create_shortcut_lo.vbs**. Script for creating shortcut in Autostart folder to automatically run LibreOffice Quickstart on user's logon.
 
 * **edit_firefox_profile.vbs**. Script adjusts Mozilla Firefox profile for proper work in domain based environment. Basicaly it modifies *prefs.js* file in user's profile for correct opening local or network web pages.
+
+* **run_logon_scripts.vbs**. Script for sequentially and silently launching another scripts from the specified network folder. It is a some kind of analogue of init.d system in Linux or Group Policy scripts in Windows.
